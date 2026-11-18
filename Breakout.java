@@ -12,7 +12,7 @@ public class Breakout extends JFrame {
         setResizable(false);//Impede de mexer nas dimensões da tela
     }
 
-    public static void mian(String[] args){
+    public static void main(String[] args){
         new Breakout().setVisible(true);//Cria a janela e deixa visível
     }
 }
