@@ -2,9 +2,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 //ActionListener serve para ouvir as batidas do Timer
-public class TelaJogo extends JPanel implements ActionListener {
+public class TelaJogo extends JPanel implements ActionListener, KeyListener {
+
+    double velocidadeTotal = 6.0;
 
     //Posição da bola e da raquete
     public double bolaX = 400, bolaY = 300;
@@ -26,11 +30,19 @@ public class TelaJogo extends JPanel implements ActionListener {
 
     public int blocosQuebrados = 0;
 
+    public int raqueteLargura = 100;
+    public double velRaquete = 8;
+
+    private boolean indoEsquerda = false;
+    private boolean indoDireita = false;
+
     private Timer timer;
 
     public TelaJogo(){
         setBackground(Color.BLACK);
         reiniciarBlocos();
+        setFocusable(true);
+        addKeyListener(this);
 
         //Roda o jogo a 60 frames
         timer = new Timer(16, this);
@@ -46,6 +58,20 @@ public class TelaJogo extends JPanel implements ActionListener {
         }
     }
 
+    public void moverEsquerda(){
+        raqueteX -= velRaquete;
+        if(raqueteX < 0){
+            raqueteX = 0;
+        }
+    }
+
+    public void moverDireita(){
+        raqueteX += velRaquete;
+        if(getWidth() > 0 && raqueteX > getWidth() - raqueteLargura){
+            raqueteX = getWidth() - raqueteLargura;
+        }
+    }
+
     @Override
     public void paintComponent(Graphics g){
         super.paintComponent(g);
@@ -56,7 +82,7 @@ public class TelaJogo extends JPanel implements ActionListener {
 
         //Desenha a raquete em retangulo
         g.setColor(Color.GREEN);
-        g.fillRect((int) raqueteX, (int) raqueteY, 100, 15);
+        g.fillRect((int) raqueteX, (int) raqueteY, raqueteLargura, 15);
 
         //Desenhar os blocos
         for(int i = 0; i < linhas; i++){
@@ -96,8 +122,25 @@ public class TelaJogo extends JPanel implements ActionListener {
 
         //Quicar na raquete
         if(bolaY + 15 >= raqueteY && bolaY <= raqueteY + 15){
-            if(bolaX + 15 >= raqueteX && bolaX <= raqueteX + 100){
-                velY = -Math.abs(velY); //Sempre que a bola bater na raquete ela volte
+            if(bolaX + 15 >= raqueteX && bolaX <= raqueteX + raqueteLargura){
+
+                //Acha o centro de cada objeto
+                double centroBola = bolaX + 7.5;
+                double centroRaquete = raqueteX + (raqueteLargura / 2.0);
+
+                double impacto = (centroBola - centroRaquete) / (raqueteLargura / 2.0);
+                impacto = Math.max(-1.0, Math.min(1.0, impacto));
+
+                //Converte o impacto em um angulo de ate 60 graus
+                double anguloMax = Math.toRadians(60);
+                double angulo = impacto * anguloMax;
+
+                velX = velocidadeTotal * Math.sin(angulo);
+                velY = -velocidadeTotal * Math.cos(angulo); //Negativo para a bola subir
+
+                //Reposiciona a bola em cima da raquete
+                bolaY = raqueteY - 15;
+
             }
         }
 
@@ -127,6 +170,27 @@ public class TelaJogo extends JPanel implements ActionListener {
                 }
             }
         }
+
+        if(indoEsquerda) moverEsquerda();
+        if(indoDireita) moverDireita();
+
         repaint();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if(e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) indoEsquerda = true;
+        if(e.getKeyCode() == KeyEvent.VK_RIGHT) indoDireita = true;
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if(e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) indoEsquerda = false;
+        if(e.getKeyCode() == KeyEvent.VK_RIGHT) indoDireita = false;
     }
 }
