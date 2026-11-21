@@ -137,7 +137,7 @@ public class AgenteJogo {
 
             rebatidas++;
             framesSemPontuar = 0;
-
+        }
             //Colisão com os blocos
             for(int i = 0; i < linhas; i++){
                 for(int j = 0; j < colunas; j++){
@@ -166,7 +166,6 @@ public class AgenteJogo {
                 vivo = false;
             }
             calcularFitness();
-        }
     }
 
     public void calcularFitness(){
@@ -203,7 +202,7 @@ public class AgenteJogo {
             g2d.fillOval((int) bolaX, (int) bolaY, 15, 15);
         }
         else{
-            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f));
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.20f));
 
             g2d.setColor(Color.GREEN);
             g2d.fillRect((int) raqueteX, (int) raqueteY, raqueteLargura, raqueteAltura);

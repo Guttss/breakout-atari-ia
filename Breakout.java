@@ -7,9 +7,9 @@ public class Breakout extends JFrame {
 
         setTitle("Atari Breakout - Inteligência Artificial");
         setDefaultCloseOperation(EXIT_ON_CLOSE); //Fecha o jogo ao clicar no X
-        setSize(800, 600);//Resolução
         setLocationRelativeTo(null);//Abre o jogo no meio da tela
         setResizable(false);//Impede de mexer nas dimensões da tela
+        pack();
     }
 
     public static void main(String[] args){

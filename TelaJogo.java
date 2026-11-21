@@ -2,195 +2,115 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.util.List;
+import java.util.ArrayList;
 
 //ActionListener serve para ouvir as batidas do Timer
-public class TelaJogo extends JPanel implements ActionListener, KeyListener {
+public class TelaJogo extends JPanel implements ActionListener{
 
-    double velocidadeTotal = 6.0;
-
-    //Posição da bola e da raquete
-    public double bolaX = 400, bolaY = 300;
-    public double raqueteX = 350, raqueteY = 520;
-
-    //Velocidade da bola
-    public double velX = 4, velY = -4;
-
-    public int linhas = 4;
-    public int colunas = 8;
-    public boolean[][] blocos = new boolean[linhas][colunas];
-
-    //Tamanho e posicao inicial dos blocos
-    public int blocoLargura = 80;
-    public int blocoAltura = 25;
-    public int blocoEspaco = 10; //Entre cada bloco
-    public int margemEsquerda = 45;
-    public int margemTopo = 50;
-
-    public int blocosQuebrados = 0;
-
-    public int raqueteLargura = 100;
-    public double velRaquete = 8;
-
-    private boolean indoEsquerda = false;
-    private boolean indoDireita = false;
+    //Lista que guarda todos os agentes
+    private List<AgenteJogo> populacao = new ArrayList<>();
+    private int tamanhoPopulacao = 20;
+    private int geracao = 1;
+    private double melhorFitnessGeracao = 0;
 
     private Timer timer;
 
     public TelaJogo(){
+        //Define o tamanho exatoda area de jogo
+        setPreferredSize(new Dimension(AgenteJogo.LARGURA, AgenteJogo.ALTURA));
         setBackground(Color.BLACK);
-        reiniciarBlocos();
-        setFocusable(true);
-        addKeyListener(this);
+
+        iniciarPopulacao();
 
         //Roda o jogo a 60 frames
         timer = new Timer(16, this);
         timer.start();
     }
 
-    public void reiniciarBlocos(){
-        blocosQuebrados = 0;
-        for(int i = 0; i < linhas; i++){
-            for (int j = 0; j < colunas; j++){
-                blocos[i][j] = true;
+    //Cria 50 agentes iniciais
+    public void iniciarPopulacao(){
+        populacao.clear();
+        for(int i = 0; i < tamanhoPopulacao; i++){
+            populacao.add(new AgenteJogo());
+        }
+    }
+
+    public AgenteJogo getMelhorAgenteVivo(){
+        AgenteJogo melhor = null;
+        for(AgenteJogo agente : populacao){
+            if(agente.vivo && (melhor == null || agente.fitness > melhor.fitness)){
+                melhor = agente;
             }
         }
-    }
-
-    public void moverEsquerda(){
-        raqueteX -= velRaquete;
-        if(raqueteX < 0){
-            raqueteX = 0;
-        }
-    }
-
-    public void moverDireita(){
-        raqueteX += velRaquete;
-        if(getWidth() > 0 && raqueteX > getWidth() - raqueteLargura){
-            raqueteX = getWidth() - raqueteLargura;
-        }
+        return melhor;
     }
 
     @Override
     public void paintComponent(Graphics g){
         super.paintComponent(g);
 
-        //Desenha a bolinha em circulo nas coordenadas
-        g.setColor(Color.WHITE);
-        g.fillOval((int) bolaX, (int) bolaY, 15, 15);
+        //Converte Graphics para Graphics2D
+        Graphics2D g2d = (Graphics2D) g;
 
-        //Desenha a raquete em retangulo
-        g.setColor(Color.GREEN);
-        g.fillRect((int) raqueteX, (int) raqueteY, raqueteLargura, 15);
+        AgenteJogo lider = getMelhorAgenteVivo();
+        int vivos = 0;
 
-        //Desenhar os blocos
-        for(int i = 0; i < linhas; i++){
-            for(int j = 0; j < colunas; j++){
-                if(blocos[i][j]){ //Desenha se o bloco ainda nao foi quebrado
-                    int blocoX = margemEsquerda + j * (blocoLargura + blocoEspaco);
-                    int blocoY = margemTopo + i * (blocoAltura + blocoEspaco);
-
-                    //Muda a cor conforme a linha
-                    if(i == 0) g.setColor(Color.RED);
-                    else if(i == 1) g.setColor(Color.ORANGE);
-                    else if(i == 2) g.setColor(Color.YELLOW);
-                    else g.setColor(Color.CYAN);
-
-                    g.fillRect(blocoX, blocoY, blocoLargura, blocoAltura);
+        //Desenha todos os agentes secundarios
+        for(AgenteJogo agente: populacao){
+            if(agente.vivo){
+                vivos++;
+                if(agente != lider){
+                    agente.desenhar(g2d, false);
                 }
             }
         }
+
+        //Desenha o lider por cima de todos
+        if(lider != null){
+            lider.desenhar(g2d, true);
+        }
+
+        //Informacoes na tela
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Monospaced", Font.BOLD, 14));
+        g2d.drawString(
+                String.format("Geracao: %d | Vivos: %d %d | Melhor Fitness: %.1f",
+                        geracao, vivos, tamanhoPopulacao, melhorFitnessGeracao),
+                    15, 25
+
+        );
     }
 
     //Onde acontece todo o jogo
     @Override
     public void actionPerformed(ActionEvent e) {
 
-        bolaX = bolaX + velX;
-        bolaY = bolaY + velY;
+        boolean algumVivo = false;
+        melhorFitnessGeracao = 0;
 
-        //Faz a bolinha quicar nas laterais
-        if(bolaX <= 0 || bolaX >= getWidth() - 15){
-            velX = -velX;
-        }
+        //Atualiza a fisica e a decisao de cada agente vivo
+        for(AgenteJogo agente : populacao){
+            if(agente.vivo){
+                agente.atualizar();
 
-        //Quicar no teto
-        if(bolaY <= 0){
-            velY = -velY;
-        }
-
-        //Quicar na raquete
-        if(bolaY + 15 >= raqueteY && bolaY <= raqueteY + 15){
-            if(bolaX + 15 >= raqueteX && bolaX <= raqueteX + raqueteLargura){
-
-                //Acha o centro de cada objeto
-                double centroBola = bolaX + 7.5;
-                double centroRaquete = raqueteX + (raqueteLargura / 2.0);
-
-                double impacto = (centroBola - centroRaquete) / (raqueteLargura / 2.0);
-                impacto = Math.max(-1.0, Math.min(1.0, impacto));
-
-                //Converte o impacto em um angulo de ate 60 graus
-                double anguloMax = Math.toRadians(60);
-                double angulo = impacto * anguloMax;
-
-                velX = velocidadeTotal * Math.sin(angulo);
-                velY = -velocidadeTotal * Math.cos(angulo); //Negativo para a bola subir
-
-                //Reposiciona a bola em cima da raquete
-                bolaY = raqueteY - 15;
-
-            }
-        }
-
-        //A borda ultrapassou o limite
-        if(bolaY > getHeight()){
-            bolaY = 400;
-            bolaX = 300;
-            velY = -4;
-            reiniciarBlocos();
-        }
-
-        //Colisao com os blocos
-        for(int i = 0; i < linhas; i++){
-            for(int j = 0; j < colunas; j++){
-                if(blocos[i][j]){
-                    int blocoX = margemEsquerda + j * (blocoLargura + blocoEspaco);
-                    int blocoY = margemTopo + i * (blocoAltura + blocoEspaco);
-
-                    //Verifica se a bola encostou no bloco
-                    if(bolaX + 15 >= blocoX && bolaX <= blocoX + blocoLargura &&
-                        bolaY + 15 >= blocoY && bolaY <= blocoY + blocoAltura){
-                        blocos[i][j] = false; //Quebra o bloco
-                        blocosQuebrados++;
-                        velY = -velY;
-                        break;
-                    }
+                //Atualiza o recorde atual
+                if(agente.fitness > melhorFitnessGeracao){
+                    melhorFitnessGeracao = agente.fitness;
                 }
+
+                //Verifica se ele continuou vivo
+                if(agente.vivo) algumVivo = true;
             }
         }
 
-        if(indoEsquerda) moverEsquerda();
-        if(indoDireita) moverDireita();
+        if(!algumVivo){
+            geracao++;
 
+            //Ponto de conexao do Algoritmo Genetico
+            for(AgenteJogo agente: populacao) agente.resetar();
+        }
         repaint();
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if(e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) indoEsquerda = true;
-        if(e.getKeyCode() == KeyEvent.VK_RIGHT) indoDireita = true;
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        if(e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) indoEsquerda = false;
-        if(e.getKeyCode() == KeyEvent.VK_RIGHT) indoDireita = false;
     }
 }
