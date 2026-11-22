@@ -160,7 +160,7 @@ public class RedeNeural {
         for(int i = 0; i < numEntradas; i++){
             for(int j = 0; j < numEscondidos; j++){
                 if(rand.nextDouble() < taxaMutacao){
-                    pesoV[i][j] = (rand.nextDouble() * 2 - 1) * intensidade;
+                    pesoV[i][j] += (rand.nextDouble() * 2 - 1) * intensidade;
                 }
             }
         }
@@ -173,7 +173,9 @@ public class RedeNeural {
 
         for (int j = 0; j < numEscondidos; j++){
             for(int k = 0; k < numSaidas; k++){
-                pesoW[j][k] += (rand.nextDouble() * 2 - 1) * intensidade;
+                if(rand.nextDouble() < taxaMutacao) {
+                    pesoW[j][k] += (rand.nextDouble() * 2 - 1) * intensidade;
+                }
             }
         }
 

@@ -2,16 +2,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.List;
-import java.util.ArrayList;
 
 //ActionListener serve para ouvir as batidas do Timer
 public class TelaJogo extends JPanel implements ActionListener{
 
     //Lista que guarda todos os agentes
-    private List<AgenteJogo> populacao = new ArrayList<>();
-    private int tamanhoPopulacao = 20;
-    private int geracao = 1;
+    private AlgoritmoGenetico ag = new AlgoritmoGenetico();
     private double melhorFitnessGeracao = 0;
 
     private Timer timer;
@@ -21,24 +17,14 @@ public class TelaJogo extends JPanel implements ActionListener{
         setPreferredSize(new Dimension(AgenteJogo.LARGURA, AgenteJogo.ALTURA));
         setBackground(Color.BLACK);
 
-        iniciarPopulacao();
-
         //Roda o jogo a 60 frames
         timer = new Timer(16, this);
         timer.start();
     }
 
-    //Cria 50 agentes iniciais
-    public void iniciarPopulacao(){
-        populacao.clear();
-        for(int i = 0; i < tamanhoPopulacao; i++){
-            populacao.add(new AgenteJogo());
-        }
-    }
-
     public AgenteJogo getMelhorAgenteVivo(){
         AgenteJogo melhor = null;
-        for(AgenteJogo agente : populacao){
+        for(AgenteJogo agente : ag.populacao){
             if(agente.vivo && (melhor == null || agente.fitness > melhor.fitness)){
                 melhor = agente;
             }
@@ -57,7 +43,7 @@ public class TelaJogo extends JPanel implements ActionListener{
         int vivos = 0;
 
         //Desenha todos os agentes secundarios
-        for(AgenteJogo agente: populacao){
+        for(AgenteJogo agente: ag.populacao){
             if(agente.vivo){
                 vivos++;
                 if(agente != lider){
@@ -77,7 +63,7 @@ public class TelaJogo extends JPanel implements ActionListener{
         g2d.setFont(new Font("Monospaced", Font.BOLD, 14));
         g2d.drawString(
                 String.format("Geracao: %d | Vivos: %d %d | Melhor Fitness: %.1f",
-                        geracao, vivos, tamanhoPopulacao, melhorFitnessGeracao),
+                        ag.geracao, vivos, ag.tamanhoPopulacao, melhorFitnessGeracao),
                     15, 25
 
         );
@@ -91,7 +77,7 @@ public class TelaJogo extends JPanel implements ActionListener{
         melhorFitnessGeracao = 0;
 
         //Atualiza a fisica e a decisao de cada agente vivo
-        for(AgenteJogo agente : populacao){
+        for(AgenteJogo agente : ag.populacao){
             if(agente.vivo){
                 agente.atualizar();
 
@@ -106,10 +92,7 @@ public class TelaJogo extends JPanel implements ActionListener{
         }
 
         if(!algumVivo){
-            geracao++;
-
-            //Ponto de conexao do Algoritmo Genetico
-            for(AgenteJogo agente: populacao) agente.resetar();
+            ag.evoluir();
         }
         repaint();
     }

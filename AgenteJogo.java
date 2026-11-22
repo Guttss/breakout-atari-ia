@@ -5,6 +5,8 @@ public class AgenteJogo {
     public static final int LARGURA = 800;
     public static final int ALTURA = 600;
 
+    public static double anguloLancamento = Math.toRadians(45);
+
     //Bola e raquete
     public double bolaX, bolaY;
     public double raqueteX, raqueteY = 520;
@@ -51,8 +53,8 @@ public class AgenteJogo {
         bolaY = 300;
         raqueteX = 350;
 
-        velX = 4.24;
-        velY = -4.24;
+        velX = velocidadeBola * Math.sin(anguloLancamento);
+        velY = -velocidadeBola * Math.cos(anguloLancamento);
 
         vivo = true;
         blocosQuebrados = 0;
@@ -88,12 +90,15 @@ public class AgenteJogo {
         double centroBola = bolaX + 7.5;
         double centroRaquete = raqueteX + (raqueteLargura / 2.0);
 
+        double distRelativa = ((centroBola - centroRaquete) / LARGURA) * 2.5;
+        distRelativa = Math.max(-1.0, Math.min(1.0, distRelativa));
+
         return new double[]{
                 centroBola / LARGURA,   //Posição X da bola
                 bolaY / ALTURA,         //Posição Y da bola
                 velX / velocidadeBola,  //Velocidade X
                 velY / velocidadeBola,  //Velocidade Y
-                (centroBola - centroRaquete) / LARGURA  //Distância relativa entre a bola e a raquete
+                distRelativa //Distância relativa entre a bola e a raquete
         };
     }
 
