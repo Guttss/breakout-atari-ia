@@ -135,5 +135,53 @@ public class RedeNeural {
 
         return erroTotal;
     }
+
+    //Cria uma copia dos pesos da rede
+    public RedeNeural clonar(){
+        RedeNeural copia = new RedeNeural();
+
+        for(int i = 0; i < numEntradas; i++){
+            System.arraycopy(this.pesoV[i], 0, copia.pesoV[i], 0, numEscondidos);
+        }
+        System.arraycopy(this.pesoV_bias, 0, copia.pesoV_bias, 0, numEscondidos);
+
+        for(int j = 0; j < numEscondidos; j++){
+            System.arraycopy(this.pesoW[j], 0, copia.pesoW[j], 0, numSaidas);
+        }
+        System.arraycopy(this.pesoW_bias, 0, copia.pesoW_bias, 0, numSaidas);
+
+        return copia;
+    }
+
+    //Aplica pequenas variacaoes aleatorias nos pesos
+    public void mutar(double taxaMutacao, double intensidade){
+        Random rand = new Random();
+
+        for(int i = 0; i < numEntradas; i++){
+            for(int j = 0; j < numEscondidos; j++){
+                if(rand.nextDouble() < taxaMutacao){
+                    pesoV[i][j] = (rand.nextDouble() * 2 - 1) * intensidade;
+                }
+            }
+        }
+
+        for(int j = 0; j < numEscondidos; j++){
+            if(rand.nextDouble() < taxaMutacao){
+                pesoV_bias[j] += (rand.nextDouble() * 2 - 1) * intensidade;
+            }
+        }
+
+        for (int j = 0; j < numEscondidos; j++){
+            for(int k = 0; k < numSaidas; k++){
+                pesoW[j][k] += (rand.nextDouble() * 2 - 1) * intensidade;
+            }
+        }
+
+        for(int k = 0; k < numSaidas; k++){
+            if(rand.nextDouble() < taxaMutacao){
+                pesoW_bias[k] += (rand.nextDouble() * 2 - 1) * intensidade;
+            }
+        }
+    }
 }
 

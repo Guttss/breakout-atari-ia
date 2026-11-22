@@ -34,7 +34,15 @@ public class AgenteJogo {
     public int framesSemPontuar = 0;
     public double fitness = 0;
 
+    public RedeNeural cerebro;
+
     public AgenteJogo(){
+        this.cerebro = new RedeNeural();
+        resetar();
+    }
+
+    public AgenteJogo(RedeNeural cerebro){
+        this.cerebro = cerebro;
         resetar();
     }
 
@@ -96,10 +104,21 @@ public class AgenteJogo {
         framesVivos++;
         framesSemPontuar++;
 
-        //Movimento aleatorio da rede neural para testes
-        double acao = Math.random();
-        if (acao < 0.33) moverEsquerda();
-        else if (acao > 0.66) moverDireita();
+        //Le os 5 sensores e calcula as 3 saidas da rede
+        double[] saidas = cerebro.CalcularSaida(getEntradas());
+
+        int melhorAcao = 0;
+        for(int i = 1; i < saidas.length; i++){
+            if(saidas[i] > saidas[melhorAcao]){
+                melhorAcao = i;
+            }
+        }
+
+        if(melhorAcao == 0){
+            moverEsquerda();
+        } else if(melhorAcao == 2){
+            moverDireita();
+        }
 
         //atualizar velocidade da bola
         bolaX += velX;
@@ -138,6 +157,7 @@ public class AgenteJogo {
             rebatidas++;
             framesSemPontuar = 0;
         }
+        loopBlocos:
             //Colisão com os blocos
             for(int i = 0; i < linhas; i++){
                 for(int j = 0; j < colunas; j++){
@@ -156,16 +176,26 @@ public class AgenteJogo {
                             if(blocosQuebrados % (linhas * colunas) == 0){
                                 reiniciarBlocos();
                             }
-                            break;
+                            break loopBlocos;
                         }
                     }
                 }
             }
-            //Bola caiu o caiu ou o agente entrou em loop
+            calcularFitness();
+
+            //Bola caiu ou o agente entrou em loop
             if(bolaY > ALTURA || framesSemPontuar > 900){
                 vivo = false;
+                double centroBola = bolaX + 7.5;
+                double centroRaquete = raqueteX + (raqueteLargura / 2.0);
+                double distancia = Math.abs(centroBola - centroRaquete);
+
+                fitness += Math.max(0, 10.0 - (distancia / 40.0));
+            }else if (framesSemPontuar > 900){
+                vivo = false;
             }
-            calcularFitness();
+
+
     }
 
     public void calcularFitness(){
