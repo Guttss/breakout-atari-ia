@@ -1,16 +1,17 @@
+import java.lang.reflect.AnnotatedArrayType;
 import java.util.Arrays;
 import java.util.Random;
 
 public class AlgoritmoGenetico {
 
-    public int tamanhoPopulacao = 50;
+    public int tamanhoPopulacao = 20;
     public AgenteJogo[] populacao;
     public int geracao;
 
     private Random numAleatorio = new Random();
 
     public AlgoritmoGenetico(){
-        //Cria 50 lugares
+        //Cria ? lugares
         populacao = new AgenteJogo[tamanhoPopulacao];
         geracao = 1;
 
@@ -83,16 +84,14 @@ public class AlgoritmoGenetico {
         return Math.max(-3.0, Math.min(3.0, valor));
     }
 
-    public void mutacao(AgenteJogo filho, double taxaMutacao){
-        Random numAleatorio = new Random();
-
+    public void mutacao(AgenteJogo filho, double taxaMutacao, double intensidade){
         //Percorre os genes PesoV
         //Se for abaixo da taxa (ex: 0.05) sofre mutação
         for(int i=0; i<RedeNeural.numEntradas; i++){
             for(int j=0; j<RedeNeural.numEscondidos; j++){
                 if(numAleatorio.nextDouble() < taxaMutacao){
                     //Soma ou subtrai um pequeno valor aleatorio no peso
-                    double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * 0.3;
+                    double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * intensidade;
                     filho.cerebro.pesoV[i][j] = limitarPeso(filho.cerebro.pesoV[i][j] + operacao);
                 }
             }
@@ -101,7 +100,7 @@ public class AlgoritmoGenetico {
         //Percorre os genes PesoV_Bias
         for (int j = 0; j < RedeNeural.numEscondidos; j++) {
             if (numAleatorio.nextDouble() < taxaMutacao) {
-                double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * 0.3;
+                double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * intensidade;
                 filho.cerebro.pesoV_bias[j] = limitarPeso(filho.cerebro.pesoV_bias[j] + operacao);
             }
         }
@@ -111,7 +110,7 @@ public class AlgoritmoGenetico {
             for(int j=0; j<RedeNeural.numSaidas; j++){
                 if(numAleatorio.nextDouble() < taxaMutacao){
                     //Soma ou subtrai um pequeno valor aleatorio no peso
-                    double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * 0.3;
+                    double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * intensidade;
                     filho.cerebro.pesoW[i][j] = limitarPeso(filho.cerebro.pesoW[i][j] + operacao);
                 }
             }
@@ -120,7 +119,7 @@ public class AlgoritmoGenetico {
         //Percorre os genes PesoW_Bias
         for (int j = 0; j < RedeNeural.numSaidas; j++) {
             if (numAleatorio.nextDouble() < taxaMutacao) {
-                double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * 0.3;
+                double operacao = (numAleatorio.nextDouble() * 2.0 - 1.0) * intensidade;
                 filho.cerebro.pesoW_bias[j] = limitarPeso(filho.cerebro.pesoW_bias[j] + operacao);
             }
         }
@@ -146,10 +145,13 @@ public class AlgoritmoGenetico {
             AgenteJogo mae = selecaoIndividuo();
 
             AgenteJogo filho = crossover(pai, mae);
-            mutacao(filho, 0.10); //10% de chance de mutar cada peso
+            mutacao(filho, 0.10, 0.30); //10% de chance de mutar cada peso
 
             novaPopulacao[i] = filho;
         }
+
+        novaPopulacao[tamanhoPopulacao - 2] = new AgenteJogo();
+        novaPopulacao[tamanhoPopulacao - 1] = new AgenteJogo();
 
         populacao = novaPopulacao;
         geracao++;

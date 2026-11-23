@@ -12,7 +12,8 @@ public class AgenteJogo {
     public double raqueteX, raqueteY = 520;
     public int raqueteLargura = 100;
     public int raqueteAltura = 15;
-    public double velRaquete = 8.0;
+    public double velRaquete = 11.0;
+    public static final double VELOCIDADE_MAXIMA = 13.5;
 
     public double velX, velY;
     public double velocidadeBola = 6.0;
@@ -36,6 +37,14 @@ public class AgenteJogo {
     public int framesSemPontuar = 0;
     public double fitness = 0;
 
+    public static final double[] ANGULOS_TESTE = {
+            Math.toRadians(42),
+            Math.toRadians(-42),
+            Math.toRadians(20)
+    };
+    public int tentativaAtual = 0;
+    public double bonusAlinhamento = 0;
+
     public RedeNeural cerebro;
 
     public AgenteJogo(){
@@ -49,19 +58,27 @@ public class AgenteJogo {
     }
 
     public void resetar(){
-        bolaX = 400;
-        bolaY = 300;
-        raqueteX = 350;
-
-        velX = velocidadeBola * Math.sin(anguloLancamento);
-        velY = -velocidadeBola * Math.cos(anguloLancamento);
-
+        tentativaAtual = 0;
         vivo = true;
         blocosQuebrados = 0;
         rebatidas = 0;
         framesVivos = 0;
-        framesSemPontuar = 0;
+        bonusAlinhamento = 0;
         fitness = 0;
+
+        iniciarTentativa();
+    }
+
+    public void iniciarTentativa(){
+        bolaX = 400;
+        bolaY = 300;
+        raqueteX = 350;
+        framesSemPontuar = 0;
+        velocidadeBola = 6.0;
+
+        double angulo = ANGULOS_TESTE[tentativaAtual];
+        velX = velocidadeBola * Math.sin(angulo);
+        velY = -velocidadeBola * Math.cos(angulo);
 
         reiniciarBlocos();
     }
@@ -149,6 +166,9 @@ public class AgenteJogo {
         if (bolaY + 15 >= raqueteY && bolaY <= raqueteY + raqueteAltura &&
                 bolaX + 15 >= raqueteX && bolaX <= raqueteX + raqueteLargura) {
 
+            //Aumenta a velocidade da bola
+            velocidadeBola = Math.min(VELOCIDADE_MAXIMA, velocidadeBola + 0.25);
+
             double centroBola = bolaX + 7.5;
             double centroRaquete = raqueteX + (raqueteLargura / 2.0);
             double impacto = (centroBola - centroRaquete) / (raqueteLargura / 2.0);
@@ -190,21 +210,39 @@ public class AgenteJogo {
 
             //Bola caiu ou o agente entrou em loop
             if(bolaY > ALTURA || framesSemPontuar > 900){
-                vivo = false;
-                double centroBola = bolaX + 7.5;
-                double centroRaquete = raqueteX + (raqueteLargura / 2.0);
-                double distancia = Math.abs(centroBola - centroRaquete);
+                //Recompensa proximidade apenas se a bola caiu no fundo
+                if(bolaY  > ALTURA){
+                    double centroBola = bolaX + 7.5;
+                    double centroRaquete = raqueteX + (raqueteLargura / 2.0);
+                    double distancia = Math.abs(centroBola - centroRaquete);
 
-                fitness += Math.max(0, 10.0 - (distancia / 40.0));
-            }else if (framesSemPontuar > 900){
-                vivo = false;
+                    bonusAlinhamento += Math.max(0, 10 - (distancia / 40.0));
+                    calcularFitness();
+                }
+
+                tentativaAtual++;
+                if(tentativaAtual < ANGULOS_TESTE.length){
+                    iniciarTentativa();
+                }else {
+                    vivo = false; //So encerra apos passar os 3 angulos
+                }
             }
-
-
     }
 
     public void calcularFitness(){
-        fitness = (blocosQuebrados * 100.0) + (rebatidas * 15.0) + (framesVivos * 0.05);
+        double centroBola = bolaX + 7.5;
+        double centroRaquete = raqueteX + (raqueteLargura / 2.0);
+        double erroNormalizado = Math.abs(centroBola - centroRaquete) / LARGURA;
+
+        if(velY > 0){
+            bonusAlinhamento += (1.0 - erroNormalizado) * 0.25;
+        }
+
+        if(raqueteX <= 1 || raqueteX >= LARGURA - raqueteLargura - 1){
+            bonusAlinhamento -= 0.15;
+        }
+
+        fitness = (blocosQuebrados * 100.0) + (rebatidas * 20.0) + bonusAlinhamento;
     }
 
     public void desenhar(Graphics2D g2d, boolean isLider) {

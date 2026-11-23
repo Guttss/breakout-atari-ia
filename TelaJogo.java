@@ -9,6 +9,8 @@ public class TelaJogo extends JPanel implements ActionListener{
     //Lista que guarda todos os agentes
     private AlgoritmoGenetico ag = new AlgoritmoGenetico();
     private double melhorFitnessGeracao = 0;
+    
+    private int velocidadeSimulacao = 1; //1x = normal, ? = turbo
 
     private Timer timer;
 
@@ -16,6 +18,14 @@ public class TelaJogo extends JPanel implements ActionListener{
         //Define o tamanho exatoda area de jogo
         setPreferredSize(new Dimension(AgenteJogo.LARGURA, AgenteJogo.ALTURA));
         setBackground(Color.BLACK);
+
+        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("SPACE"), "alternarVelocidade");
+        getActionMap().put("alternarVelocidade", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                velocidadeSimulacao = (velocidadeSimulacao == 1)? 30 : 1;
+            }
+        });
 
         //Roda o jogo a 60 frames
         timer = new Timer(16, this);
@@ -58,12 +68,18 @@ public class TelaJogo extends JPanel implements ActionListener{
         }
 
         //Informacoes na tela
+        int bolaAtual = (lider != null) ? (lider.tentativaAtual + 1) : 1;
+        int totalBolas = AgenteJogo.ANGULOS_TESTE.length;
+        double velBola = (lider != null) ? lider.velocidadeBola : 0.0;
+
+
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Monospaced", Font.BOLD, 14));
         g2d.drawString(
-                String.format("Geracao: %d | Vivos: %d %d | Melhor Fitness: %.1f",
-                        ag.geracao, vivos, ag.tamanhoPopulacao, melhorFitnessGeracao),
+                String.format("Geracao: %d | Vivos: %d/%d | Bola: %d/%d | Vel: %1f | Fit: %.0f | Sim: %dx [ESPACO]",
+                        ag.geracao, vivos, ag.tamanhoPopulacao, bolaAtual, totalBolas,
+                        velBola, melhorFitnessGeracao , velocidadeSimulacao),
                     15, 25
 
         );
@@ -72,27 +88,29 @@ public class TelaJogo extends JPanel implements ActionListener{
     //Onde acontece todo o jogo
     @Override
     public void actionPerformed(ActionEvent e) {
+        //Executa 'velocidadeSimulacao' passos de fisica antes de desenhar 1 frame na tela
+        for (int passo = 0; passo < velocidadeSimulacao; passo++) {
+            boolean algumVivo = false;
+            melhorFitnessGeracao = 0;
 
-        boolean algumVivo = false;
-        melhorFitnessGeracao = 0;
+            //Atualiza a fisica e a decisao de cada agente vivo
+            for (AgenteJogo agente : ag.populacao) {
+                if (agente.vivo) {
+                    agente.atualizar();
 
-        //Atualiza a fisica e a decisao de cada agente vivo
-        for(AgenteJogo agente : ag.populacao){
-            if(agente.vivo){
-                agente.atualizar();
+                    //Atualiza o recorde atual
+                    if (agente.fitness > melhorFitnessGeracao) {
+                        melhorFitnessGeracao = agente.fitness;
+                    }
 
-                //Atualiza o recorde atual
-                if(agente.fitness > melhorFitnessGeracao){
-                    melhorFitnessGeracao = agente.fitness;
+                    //Verifica se ele continuou vivo
+                    if (agente.vivo) algumVivo = true;
                 }
-
-                //Verifica se ele continuou vivo
-                if(agente.vivo) algumVivo = true;
             }
-        }
 
-        if(!algumVivo){
-            ag.evoluir();
+            if (!algumVivo) {
+                ag.evoluir();
+            }
         }
         repaint();
     }
