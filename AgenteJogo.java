@@ -47,6 +47,11 @@ public class AgenteJogo {
 
     public RedeNeural cerebro;
 
+    // [NOVO] Controle para jogador humano
+    public boolean isHumano = false;
+    public boolean movendoEsquerda = false;
+    public boolean movendoDireita = false;
+
     public AgenteJogo(){
         this.cerebro = new RedeNeural();
         resetar();
@@ -126,20 +131,26 @@ public class AgenteJogo {
         framesVivos++;
         framesSemPontuar++;
 
-        //Le os 5 sensores e calcula as 3 saidas da rede
-        double[] saidas = cerebro.CalcularSaida(getEntradas());
+        // [ALTERADO] Se for humano usa o teclado; senão usa a Rede Neural
+        if (isHumano) {
+            if (movendoEsquerda) moverEsquerda();
+            if (movendoDireita) moverDireita();
+        } else {
+            //Le os 5 sensores e calcula as 3 saidas da rede
+            double[] saidas = cerebro.CalcularSaida(getEntradas());
 
-        int melhorAcao = 0;
-        for(int i = 1; i < saidas.length; i++){
-            if(saidas[i] > saidas[melhorAcao]){
-                melhorAcao = i;
+            int melhorAcao = 0;
+            for(int i = 1; i < saidas.length; i++){
+                if(saidas[i] > saidas[melhorAcao]){
+                    melhorAcao = i;
+                }
             }
-        }
 
-        if(melhorAcao == 0){
-            moverEsquerda();
-        } else if(melhorAcao == 2){
-            moverDireita();
+            if(melhorAcao == 0){
+                moverEsquerda();
+            } else if(melhorAcao == 2){
+                moverDireita();
+            }
         }
 
         //atualizar velocidade da bola
@@ -183,50 +194,50 @@ public class AgenteJogo {
             framesSemPontuar = 0;
         }
         loopBlocos:
-            //Colisão com os blocos
-            for(int i = 0; i < linhas; i++){
-                for(int j = 0; j < colunas; j++){
-                    if(blocos[i][j]){
-                        int blocoX = margemEsquerda + j * (blocoLargura + blocoEspaco);
-                        int blocoY = margemTopo + i * (blocoAltura + blocoEspaco);
+        //Colisão com os blocos
+        for(int i = 0; i < linhas; i++){
+            for(int j = 0; j < colunas; j++){
+                if(blocos[i][j]){
+                    int blocoX = margemEsquerda + j * (blocoLargura + blocoEspaco);
+                    int blocoY = margemTopo + i * (blocoAltura + blocoEspaco);
 
-                        if (bolaX + 15 >= blocoX && bolaX <= blocoX + blocoLargura &&
-                                bolaY + 15 >= blocoY && bolaY <= blocoY + blocoAltura){
+                    if (bolaX + 15 >= blocoX && bolaX <= blocoX + blocoLargura &&
+                            bolaY + 15 >= blocoY && bolaY <= blocoY + blocoAltura){
 
-                            blocos[i][j] = false;
-                            blocosQuebrados++;
-                            framesSemPontuar = 0;
-                            velY = -velY;
+                        blocos[i][j] = false;
+                        blocosQuebrados++;
+                        framesSemPontuar = 0;
+                        velY = -velY;
 
-                            if(blocosQuebrados % (linhas * colunas) == 0){
-                                reiniciarBlocos();
-                            }
-                            break loopBlocos;
+                        if(blocosQuebrados % (linhas * colunas) == 0){
+                            reiniciarBlocos();
                         }
+                        break loopBlocos;
                     }
                 }
             }
-            calcularFitness();
+        }
+        calcularFitness();
 
-            //Bola caiu ou o agente entrou em loop
-            if(bolaY > ALTURA || framesSemPontuar > 900){
-                //Recompensa proximidade apenas se a bola caiu no fundo
-                if(bolaY  > ALTURA){
-                    double centroBola = bolaX + 7.5;
-                    double centroRaquete = raqueteX + (raqueteLargura / 2.0);
-                    double distancia = Math.abs(centroBola - centroRaquete);
+        //Bola caiu ou o agente entrou em loop
+        if(bolaY > ALTURA || framesSemPontuar > 900){
+            //Recompensa proximidade apenas se a bola caiu no fundo
+            if(bolaY  > ALTURA){
+                double centroBola = bolaX + 7.5;
+                double centroRaquete = raqueteX + (raqueteLargura / 2.0);
+                double distancia = Math.abs(centroBola - centroRaquete);
 
-                    bonusAlinhamento += Math.max(0, 10 - (distancia / 40.0));
-                    calcularFitness();
-                }
-
-                tentativaAtual++;
-                if(tentativaAtual < ANGULOS_TESTE.length){
-                    iniciarTentativa();
-                }else {
-                    vivo = false; //So encerra apos passar os 3 angulos
-                }
+                bonusAlinhamento += Math.max(0, 10 - (distancia / 40.0));
+                calcularFitness();
             }
+
+            tentativaAtual++;
+            if(tentativaAtual < ANGULOS_TESTE.length){
+                iniciarTentativa();
+            }else {
+                vivo = false; //So encerra apos passar os 3 angulos
+            }
+        }
     }
 
     public void calcularFitness(){
@@ -268,8 +279,10 @@ public class AgenteJogo {
                 }
             }
 
-            g2d.setColor(Color.GREEN);
+            // [ALTERADO] Raquete ciano para o humano, verde para a IA
+            g2d.setColor(isHumano ? Color.CYAN : Color.GREEN);
             g2d.fillRect((int)raqueteX, (int) raqueteY, raqueteLargura, raqueteAltura);
+
 
             g2d.setColor(Color.WHITE);
             g2d.fillOval((int) bolaX, (int) bolaY, 15, 15);
@@ -278,7 +291,7 @@ public class AgenteJogo {
             g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.20f));
 
             g2d.setColor(Color.GREEN);
-            g2d.fillRect((int) raqueteX, (int) raqueteY, raqueteLargura, raqueteAltura);
+            g2d.fillRect((int)raqueteX, (int) raqueteY, raqueteLargura, raqueteAltura);
 
             g2d.setColor(Color.LIGHT_GRAY);
             g2d.fillOval((int) bolaX, (int) bolaY, 15, 15);
